@@ -1,13 +1,12 @@
-# Toaster Monorepo
+# Toaster BuliderMonorepo
 
 This repository contains:
 
-- packages/builder: Static web UI (Cloudflare Pages)
-- packages/worker: Cloudflare Worker (Wrangler)
+- packages/builder: Static web UI
+- packages/worker: Cloudflare Worker
 
-## Live URLs
-- Builder (Pages): https://ac5cb599.toaster-builder.pages.dev (custom domain pending: https://builder.toaster.cloustan.org)
-- Worker: https://toaster-bulider-worker.choits824.workers.dev
+## Live URL
+- Builder: https://builder.toaster.cloustan.org
 
 ## Local Development
 
@@ -23,11 +22,11 @@ This repository contains:
 
 ## Deploy
 
-### Builder (Pages)
+### Builder
 - npx wrangler pages deploy packages/builder --project-name toaster-builder
 - Bind custom domain in Cloudflare Dashboard → Pages → toaster-builder → Custom domains
 
-### Worker (Wrangler)
+### Worker
 - cd packages/worker
 - npm run deploy
 
