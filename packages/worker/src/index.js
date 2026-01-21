@@ -35,6 +35,39 @@ function sanitizeString(str) {
   return str.replace(/<script/gi, '&lt;script').replace(/on[a-z]+=/gi, 'x-attr=');
 }
 
+function sanitizeUrl(url) {
+  if (typeof url !== 'string') return url;
+  const trimmed = url.trim();
+  if (/^javascript:/i.test(trimmed)) return '';
+  return trimmed;
+}
+
+function isAllowedDataMime(mime) {
+  const allowed = [
+    'image/png',
+    'image/jpeg',
+    'image/webp',
+    'image/gif',
+    'video/mp4',
+    'video/webm',
+  ];
+  return allowed.includes(mime.toLowerCase());
+}
+
+function isSafeSrc(src) {
+  if (typeof src !== 'string') return false;
+  if (/^https?:\/\//i.test(src)) return true;
+  const m = src.match(/^data:([^;]+);base64,[a-z0-9+/=\s]+$/i);
+  if (!m) return false;
+  return isAllowedDataMime(m[1]);
+}
+
+function isAllowedModelUrl(src) {
+  if (typeof src !== 'string') return false;
+  if (!/^https?:\/\//i.test(src)) return false;
+  return /\.(glb|gltf)(\?|#|$)/i.test(src);
+}
+
 function validateCourseSchema(data) {
   const issues = [];
   if (!data || typeof data !== 'object') issues.push('Payload must be an object');
@@ -51,6 +84,64 @@ function validateCourseSchema(data) {
       if (s.description && typeof s.description !== 'string') issues.push(`step ${i + 1} description invalid`);
       if (s.algorithm && !Array.isArray(s.algorithm)) issues.push(`step ${i + 1} algorithm invalid`);
       if (s.visual_aid && typeof s.visual_aid !== 'string') issues.push(`step ${i + 1} visual_aid invalid`);
+      if (s.images) {
+        if (!Array.isArray(s.images)) issues.push(`step ${i + 1} images must be an array`);
+        if (Array.isArray(s.images)) {
+          if (s.images.length > 30) issues.push(`step ${i + 1} images too many`);
+          s.images.forEach((img, j) => {
+            if (!img || typeof img !== 'object') issues.push(`step ${i + 1} image ${j + 1} invalid`);
+            if (img && typeof img === 'object') {
+              if (!img.src || typeof img.src !== 'string') issues.push(`step ${i + 1} image ${j + 1} src invalid`);
+              if (img.src && !isSafeSrc(img.src)) issues.push(`step ${i + 1} image ${j + 1} src not allowed`);
+              if (img.alt && typeof img.alt !== 'string') issues.push(`step ${i + 1} image ${j + 1} alt invalid`);
+            }
+          });
+        }
+      }
+      if (s.videos) {
+        if (!Array.isArray(s.videos)) issues.push(`step ${i + 1} videos must be an array`);
+        if (Array.isArray(s.videos)) {
+          if (s.videos.length > 20) issues.push(`step ${i + 1} videos too many`);
+          s.videos.forEach((vid, j) => {
+            if (!vid || typeof vid !== 'object') issues.push(`step ${i + 1} video ${j + 1} invalid`);
+            if (vid && typeof vid === 'object') {
+              if (!vid.src || typeof vid.src !== 'string') issues.push(`step ${i + 1} video ${j + 1} src invalid`);
+              if (vid.src && !isSafeSrc(vid.src)) issues.push(`step ${i + 1} video ${j + 1} src not allowed`);
+              if (vid.poster && typeof vid.poster !== 'string') issues.push(`step ${i + 1} video ${j + 1} poster invalid`);
+              if (vid.poster && !isSafeSrc(vid.poster)) issues.push(`step ${i + 1} video ${j + 1} poster not allowed`);
+              if (typeof vid.duration !== 'undefined') {
+                if (typeof vid.duration !== 'number' || !Number.isFinite(vid.duration) || vid.duration < 0) {
+                  issues.push(`step ${i + 1} video ${j + 1} duration invalid`);
+                } else if (vid.duration > 20.0001) {
+                  issues.push(`step ${i + 1} video ${j + 1} duration exceeds 20s`);
+                }
+              }
+            }
+          });
+        }
+      }
+      if (s.annotations) {
+        if (!Array.isArray(s.annotations)) issues.push(`step ${i + 1} annotations must be an array`);
+        if (Array.isArray(s.annotations)) {
+          if (s.annotations.length > 100) issues.push(`step ${i + 1} annotations too many`);
+          s.annotations.forEach((ann, j) => {
+            if (!ann || typeof ann !== 'object') issues.push(`step ${i + 1} annotation ${j + 1} invalid`);
+            if (ann && typeof ann === 'object') {
+              if (ann.type && typeof ann.type !== 'string') issues.push(`step ${i + 1} annotation ${j + 1} type invalid`);
+              if (ann.text && typeof ann.text !== 'string') issues.push(`step ${i + 1} annotation ${j + 1} text invalid`);
+            }
+          });
+        }
+      }
+      if (s.model_3d) {
+        if (typeof s.model_3d !== 'object') issues.push(`step ${i + 1} model_3d invalid`);
+        if (s.model_3d && typeof s.model_3d === 'object') {
+          if (!s.model_3d.src || typeof s.model_3d.src !== 'string') issues.push(`step ${i + 1} model_3d src invalid`);
+          if (s.model_3d.src && !isAllowedModelUrl(s.model_3d.src)) issues.push(`step ${i + 1} model_3d src not allowed`);
+        }
+      }
+      if (s.scramble && typeof s.scramble !== 'string') issues.push(`step ${i + 1} scramble invalid`);
+      if (s.theme && s.theme !== 'milky_white') issues.push(`step ${i + 1} theme unsupported`);
     });
   }
   return { ok: issues.length === 0, issues };
@@ -68,6 +159,48 @@ function scrubData(data) {
       t.description = sanitizeString(t.description);
       if (Array.isArray(t.algorithm)) {
         t.algorithm = t.algorithm.map((m) => sanitizeString(String(m)).toUpperCase());
+      }
+      if (typeof t.visual_aid === 'string' && !Array.isArray(t.images) && t.visual_aid) {
+        const src = sanitizeUrl(t.visual_aid);
+        t.images = [{ src, alt: '' }];
+      }
+      if (Array.isArray(t.images)) {
+        t.images = t.images
+          .filter((img) => img && typeof img === 'object')
+          .map((img) => ({ src: sanitizeUrl(img.src), alt: sanitizeString(img.alt || '') }))
+          .filter((img) => !!img.src);
+      }
+      if (Array.isArray(t.videos)) {
+        t.videos = t.videos
+          .filter((vid) => vid && typeof vid === 'object')
+          .map((vid) => ({
+            src: sanitizeUrl(vid.src),
+            poster: sanitizeUrl(vid.poster || ''),
+            duration: (typeof vid.duration === 'number' && Number.isFinite(vid.duration)) ? vid.duration : undefined,
+          }))
+          .filter((vid) => !!vid.src);
+      }
+      if (Array.isArray(t.annotations)) {
+        t.annotations = t.annotations
+          .filter((ann) => ann && typeof ann === 'object')
+          .map((ann) => ({
+            type: sanitizeString(ann.type || ''),
+            text: sanitizeString(ann.text || ''),
+            x: typeof ann.x === 'number' ? ann.x : undefined,
+            y: typeof ann.y === 'number' ? ann.y : undefined,
+          }));
+      }
+      if (t.model_3d && typeof t.model_3d === 'object') {
+        const src = sanitizeUrl(t.model_3d.src);
+        t.model_3d = src ? { src } : undefined;
+      }
+      if (typeof t.scramble === 'string') {
+        t.scramble = sanitizeString(t.scramble);
+      }
+      if (!t.theme) {
+        t.theme = 'milky_white';
+      } else {
+        t.theme = sanitizeString(t.theme);
       }
       return t;
     });
