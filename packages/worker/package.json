@@ -1,0 +1,18 @@
+{
+  "name": "toaster-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --local",
+    "deploy": "wrangler publish",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "crypto-js": "4.2.0"
+  },
+  "devDependencies": {
+    "wrangler": "3.80.4",
+    "vitest": "1.5.3"
+  }
+}

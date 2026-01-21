@@ -1,0 +1,39 @@
+name: Deploy Worker (backend)
+
+on:
+  push:
+    branches: [ backend ]
+    paths:
+      - 'packages/worker/**'
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: packages/worker
+        run: npm ci
+
+      - name: Deploy with Wrangler
+        uses: cloudflare/wrangler-action@v3
+        with:
+          workingDirectory: packages/worker
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy
+        env:
+          # If you wish to inject the secret during CI, consider using
+          # a Cloudflare Secret or wrangler secrets in a prior step.
+          # Generally, keep COURSE_SECRET_KEY managed in Cloudflare, not in CI.
+          NODE_ENV: production

@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toaster Course Builder - Secure</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- CryptoJS for AES Encryption -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        body { background-color: #f8fafc; color: #1e293b; }
+        .step-card { border: 1px solid #e2e8f0; transition: all 0.2s ease; }
+        .step-card:hover { border-color: #3b82f6; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        .notched-input { border-bottom: 2px solid #cbd5e1; transition: border-color 0.2s; }
+        .notched-input:focus { border-color: #3b82f6; outline: none; }
+        .img-preview { max-height: 150px; width: auto; object-fit: contain; border-radius: 0.5rem; display: none; border: 1px solid #e2e8f0; }
+        .kbd-hint { font-size: 0.65rem; padding: 1px 4px; background: #e2e8f0; border-radius: 4px; color: #64748b; margin-left: 4px; }
+        #json-output { word-break: break-all; white-space: pre-wrap; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-5xl mx-auto">
+        <!-- Header -->
+        <header class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                    Toaster Course Builder
+                    <span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded tracking-widest">SECURED</span>
+                </h1>
+                <p class="text-slate-500">Securely create and encrypt course files.</p>
+            </div>
+            <div class="flex gap-2">
+                <label class="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-medium transition-colors border border-slate-200 flex items-center">
+                    Import <span class="kbd-hint hidden sm:inline">Ctrl+I</span>
+                    <input type="file" id="import-input" accept=".json,.toaster" class="hidden" onchange="importFile(this)">
+                </label>
+                <button onclick="generateSecureFile()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center">
+                    Secure Export <span class="kbd-hint bg-blue-500 text-white border-none hidden sm:inline">Ctrl+S</span>
+                </button>
+                <button onclick="resetBuilder()" class="bg-white border border-slate-200 hover:bg-slate-50 px-4 py-2 rounded-lg font-medium transition-colors text-red-600">
+                    Reset
+                </button>
+            </div>
+        </header>
+
+        <!-- Metadata -->
+        <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-200 mb-8">
+            <h2 class="text-lg font-semibold mb-4 border-b pb-2 flex justify-between items-center">
+                Course Metadata
+                <span id="save-status" class="text-xs font-normal text-slate-400">Autosave: Idle</span>
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Course Title</label>
+                    <input type="text" id="course-title" placeholder="e.g., Beginners Method" class="w-full notched-input py-2" oninput="handleInput()">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Cube Type</label>
+                    <select id="cube-type" class="w-full notched-input py-2 bg-transparent" onchange="handleInput()">
+                        <option value="3x3">3x3 Rubik's Cube</option>
+                        <option value="2x2">2x2 Pocket Cube</option>
+                        <option value="4x4">4x4 Revenge</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Difficulty</label>
+                    <select id="difficulty" class="w-full notched-input py-2 bg-transparent" onchange="handleInput()">
+                        <option value="Beginner">Beginner</option>
+                        <option value="Intermediate">Intermediate</option>
+                        <option value="Advanced">Advanced</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div id="steps-container" class="space-y-4 mb-8"></div>
+
+        <button onclick="addStep()" class="w-full py-4 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 hover:border-blue-400 hover:text-blue-500 transition-all font-medium flex items-center justify-center gap-2 bg-white mb-20">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+            Add Blank Step <span class="kbd-hint">Ctrl+Enter</span>
+        </button>
+
+        <!-- Preview Area -->
+        <div id="preview-container" class="mt-12 hidden">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400">Encrypted Export Data</h3>
+                    <p class="text-xs text-slate-500 italic">This string is ready for the Toaster Platform.</p>
+                </div>
+                <div class="flex gap-4">
+                    <button onclick="downloadSecureFile()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-md">Download .toaster file</button>
+                    <button id="copy-btn" onclick="copyToClipboard()" class="text-blue-600 text-sm font-medium hover:underline">Copy Encrypted String</button>
+                </div>
+            </div>
+            <pre id="json-output" class="bg-slate-900 text-slate-300 p-6 rounded-xl overflow-x-auto text-xs max-h-[400px] border border-slate-800"></pre>
+        </div>
+    </div>
+
+    <!-- Step Template -->
+    <template id="step-template">
+        <div class="step-card bg-white p-6 rounded-xl shadow-sm relative group">
+            <div class="absolute -left-12 top-0 bottom-0 flex flex-col justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity hidden md:flex">
+                <button onclick="moveStep(this, -1)" class="p-1 hover:bg-blue-100 rounded text-slate-400 hover:text-blue-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" /></svg>
+                </button>
+                <button onclick="moveStep(this, 1)" class="p-1 hover:bg-blue-100 rounded text-slate-400 hover:text-blue-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                </button>
+            </div>
+            <button class="remove-btn absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+            </button>
+            <div class="flex items-center gap-3 mb-4">
+                <span class="step-number bg-blue-100 text-blue-700 w-8 h-8 rounded-full flex items-center justify-center font-bold">1</span>
+                <input type="text" placeholder="Step Title" class="step-title w-full text-lg font-semibold notched-input py-1" oninput="handleInput()">
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="md:col-span-1">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Description</label>
+                    <textarea placeholder="Instructions..." class="step-desc w-full h-32 p-2 border border-slate-200 rounded-lg text-sm focus:border-blue-500 outline-none resize-none" oninput="handleInput()"></textarea>
+                </div>
+                <div class="md:col-span-1">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Illustration (Optional)</label>
+                    <div class="relative border-2 border-dashed border-slate-200 rounded-lg p-2 text-center bg-slate-50 hover:bg-slate-100 h-32 flex flex-col items-center justify-center overflow-hidden">
+                        <input type="file" accept="image/*" class="step-img-input absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="handleImageUpload(this)">
+                        <div class="upload-placeholder text-slate-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        </div>
+                        <img src="" class="img-preview">
+                    </div>
+                </div>
+                <div class="md:col-span-1 space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Algorithm</label>
+                        <input type="text" placeholder="R U R' U'" class="step-algo w-full p-2 bg-slate-50 border border-slate-200 rounded-lg font-mono text-sm uppercase" oninput="handleInput()">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Goal</label>
+                        <select class="step-goal w-full p-2 border border-slate-200 rounded-lg text-sm bg-white" onchange="handleInput()">
+                            <option value="scrambled">Scrambled</option>
+                            <option value="top_cross">Top Cross</option>
+                            <option value="first_layer">First Layer</option>
+                            <option value="oll">OLL</option>
+                            <option value="pll">PLL</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script>
+        // --- PRODUCTION SECURITY NOTE ---
+        // In a real production app, fetch this key from an API or hide it 
+        // using build-time variables. Do not store it as a plain string.
+        const PLATFORM_SECRET_KEY = "toaster-community-shared-secret-key-2024";
+        
+        let stepCount = 0;
+        let autoSaveTimer;
+
+        // --- ENCRYPTION ---
+        function encrypt(data) {
+            return CryptoJS.AES.encrypt(JSON.stringify(data), PLATFORM_SECRET_KEY).toString();
+        }
+
+        function decrypt(cipher) {
+            try {
+                const bytes = CryptoJS.AES.decrypt(cipher, PLATFORM_SECRET_KEY);
+                return JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+            } catch (e) { return null; }
+        }
+
+        // --- CORE FUNCTIONS ---
+        function getCourseData() {
+            const steps = [];
+            document.querySelectorAll('.step-card').forEach((card, i) => {
+                steps.push({
+                    order: i + 1,
+                    title: card.querySelector('.step-title').value,
+                    description: card.querySelector('.step-desc').value,
+                    visual_aid: card.dataset.imageBase64 || null,
+                    algorithm: card.querySelector('.step-algo').value.toUpperCase().split(' ').filter(m => m.trim()),
+                    target_state: card.querySelector('.step-goal').value
+                });
+            });
+
+            return {
+                title: document.getElementById('course-title').value,
+                cube_type: document.getElementById('cube-type').value,
+                difficulty: document.getElementById('difficulty').value,
+                last_saved: new Date().toISOString(),
+                steps
+            };
+        }
+
+        function generateSecureFile() {
+            const data = getCourseData();
+            const encrypted = encrypt(data);
+            const output = document.getElementById('json-output');
+            output.textContent = encrypted;
+            document.getElementById('preview-container').classList.remove('hidden');
+            document.getElementById('preview-container').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function downloadSecureFile() {
+            const data = getCourseData();
+            const encrypted = encrypt(data);
+            const blob = new Blob([encrypted], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${data.title.toLowerCase().replace(/\s+/g, '_') || 'course'}.toaster`;
+            a.click();
+        }
+
+        // --- AUTOSAVE LOGIC ---
+        function handleInput() {
+            const status = document.getElementById('save-status');
+            status.innerText = "Typing...";
+            status.classList.add('text-blue-500');
+
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(() => {
+                const data = getCourseData();
+                localStorage.setItem('toaster_builder_draft', JSON.stringify(data));
+                status.innerText = "Draft Saved: " + new Date().toLocaleTimeString();
+                status.classList.remove('text-blue-500');
+            }, 800);
+        }
+
+        function loadDraft() {
+            const saved = localStorage.getItem('toaster_builder_draft');
+            if (saved) {
+                const data = JSON.parse(saved);
+                renderBuilder(data);
+                document.getElementById('save-status').innerText = "Restored draft from session";
+            } else {
+                addStep();
+            }
+        }
+
+        function renderBuilder(data) {
+            document.getElementById('course-title').value = data.title || '';
+            document.getElementById('cube-type').value = data.cube_type || '3x3';
+            document.getElementById('difficulty').value = data.difficulty || 'Beginner';
+            document.getElementById('steps-container').innerHTML = '';
+            stepCount = 0;
+            if (data.steps && data.steps.length > 0) {
+                data.steps.forEach(s => addStep(s));
+            } else {
+                addStep();
+            }
+        }
+
+        // --- UI HELPERS ---
+        function addStep(data = null) {
+            stepCount++;
+            const container = document.getElementById('steps-container');
+            const template = document.getElementById('step-template');
+            const clone = template.content.cloneNode(true);
+            const card = clone.querySelector('.step-card');
+            
+            card.querySelector('.step-number').innerText = stepCount;
+            if (data) {
+                card.querySelector('.step-title').value = data.title || '';
+                card.querySelector('.step-desc').value = data.description || '';
+                card.querySelector('.step-algo').value = (data.algorithm || []).join(' ');
+                card.querySelector('.step-goal').value = data.target_state || 'scrambled';
+                if (data.visual_aid) {
+                    const preview = card.querySelector('.img-preview');
+                    preview.src = data.visual_aid;
+                    preview.style.display = 'block';
+                    card.querySelector('.upload-placeholder').style.display = 'none';
+                    card.dataset.imageBase64 = data.visual_aid;
+                }
+            }
+            card.querySelector('.remove-btn').onclick = () => { card.remove(); reorder(); handleInput(); };
+            container.appendChild(clone);
+        }
+
+        function reorder() {
+            stepCount = 0;
+            document.querySelectorAll('.step-card').forEach(step => {
+                stepCount++;
+                step.querySelector('.step-number').innerText = stepCount;
+            });
+        }
+
+        function moveStep(btn, dir) {
+            const card = btn.closest('.step-card');
+            if (dir === -1 && card.previousElementSibling) card.parentNode.insertBefore(card, card.previousElementSibling);
+            else if (dir === 1 && card.nextElementSibling) card.parentNode.insertBefore(card.nextElementSibling, card);
+            reorder();
+            handleInput();
+        }
+
+        function handleImageUpload(input) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                const card = input.closest('.step-card');
+                reader.onload = (e) => {
+                    const preview = card.querySelector('.img-preview');
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    card.querySelector('.upload-placeholder').style.display = 'none';
+                    card.dataset.imageBase64 = e.target.result;
+                    handleInput();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function importFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const content = e.target.result;
+                const data = decrypt(content) || JSON.parse(content);
+                if (data) { renderBuilder(data); handleInput(); }
+            };
+            reader.readAsText(file);
+        }
+
+        function resetBuilder() {
+            if(confirm("Clear everything?")) {
+                localStorage.removeItem('toaster_builder_draft');
+                location.reload();
+            }
+        }
+
+        function copyToClipboard() {
+            const text = document.getElementById('json-output').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.getElementById('copy-btn');
+                btn.innerText = "Copied!";
+                setTimeout(() => btn.innerText = "Copy Encrypted String", 2000);
+            });
+        }
+
+        window.onload = loadDraft;
+
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); addStep(); }
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); generateSecureFile(); }
+        });
+    </script>
+</body>
+</html>

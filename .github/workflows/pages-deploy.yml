@@ -1,0 +1,26 @@
+name: Deploy Builder (frontend)
+
+on:
+  push:
+    branches: [ frontend ]
+    paths:
+      - 'packages/builder/**'
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: toaster-builder
+          directory: packages/builder
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
