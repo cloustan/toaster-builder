@@ -265,7 +265,28 @@ export default {
         return json({ error: 'Schema validation failed', issues: validation.issues }, 422, allowOrigin);
       }
 
-      return new Response(JSON.stringify({ ok: true, data: scrubbed }), {
+      // Optional: publish to Discord via server-side webhook if requested
+      if (body.publish === true) {
+        const hook = env.DISCORD_WEBHOOK_URL;
+        if (!hook) {
+          return json({ error: 'Publish requested but webhook not configured' }, 501, allowOrigin);
+        }
+        try {
+          const filename = (scrubbed.title || 'course').toLowerCase().replace(/\s+/g, '_') + '.toaster';
+          const form = new FormData();
+          const file = new File([encryptedData], filename, { type: 'text/plain' });
+          form.append('file', file, filename);
+          form.append('content', `New course export: ${scrubbed.title || 'Untitled'} (cube: ${scrubbed.cube_type || '?'}, diff: ${scrubbed.difficulty || '?'})`);
+          const resp = await fetch(hook, { method: 'POST', body: form });
+          if (!resp.ok) {
+            return json({ ok: true, data: scrubbed, publish: { ok: false, status: resp.status } }, 200, allowOrigin);
+          }
+        } catch (e) {
+          return json({ ok: true, data: scrubbed, publish: { ok: false, error: 'Webhook error' } }, 200, allowOrigin);
+        }
+      }
+
+      return new Response(JSON.stringify({ ok: true, data: scrubbed, publish: body.publish === true ? { ok: true } : undefined }), {
         status: 200,
         headers: { ...corsHeaders(allowOrigin), 'content-type': 'application/json' },
       });
