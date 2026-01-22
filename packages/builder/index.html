@@ -8,7 +8,13 @@
     <!-- CryptoJS for AES Encryption -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
-        body { background-color: #f8fafc; color: #1e293b; }
+        body {
+            color: #1e293b;
+            background:
+              radial-gradient(800px 500px at 80% 85%, rgba(236, 72, 153, 0.16), rgba(248, 250, 252, 0) 70%),
+              radial-gradient(600px 400px at 20% 10%, rgba(244, 114, 182, 0.12), rgba(248, 250, 252, 0) 60%),
+              #f8fafc;
+        }
         .step-card { border: 1px solid #e2e8f0; transition: all 0.2s ease; }
         .step-card:hover { border-color: #cbd5e1; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.08); }
         .notched-input { border-bottom: 2px solid #cbd5e1; transition: border-color 0.2s; }
@@ -36,6 +42,9 @@
                 </label>
                 <button onclick="generateSecureFile()" class="bg-slate-800 hover:bg-slate-700 text-white px-6 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center">
                     Secure Export <span class="kbd-hint bg-slate-700 text-white border-none hidden sm:inline">Ctrl+S</span>
+                </button>
+                <button onclick="publishCourse()" class="bg-slate-600 hover:bg-slate-500 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center">
+                    Publish
                 </button>
                 <button onclick="resetBuilder()" class="bg-white border border-slate-200 hover:bg-slate-50 px-4 py-2 rounded-lg font-medium transition-colors text-red-600">
                     Reset
@@ -131,7 +140,6 @@
                         <button type="button" onclick="undoLastImage(this)" class="images-undo mt-2 hidden text-xs text-slate-600 underline">Undo remove</button>
                     </div>
                 </div>
-                
                 <div class="md:col-span-1 space-y-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Algorithm</label>
@@ -157,6 +165,7 @@
         // In a real production app, fetch this key from an API or hide it 
         // using build-time variables. Do not store it as a plain string.
         const PLATFORM_SECRET_KEY = "toaster-community-shared-secret-key-2024";
+        const WORKER_URL = "https://toaster-bulider-worker.choits824.workers.dev/"; // generic publish endpoint
         
         let stepCount = 0;
         let autoSaveTimer;
@@ -165,6 +174,8 @@
         function encrypt(data) {
             return CryptoJS.AES.encrypt(JSON.stringify(data), PLATFORM_SECRET_KEY).toString();
         }
+
+        
 
         function decrypt(cipher) {
             try {
