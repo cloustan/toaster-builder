@@ -9,7 +9,7 @@ Create and share courses — Use the live builder → https://builder.toaster.cl
 - You can add images and text, as well as well as algorthims, goals and instructions
 - Upload your course or Download it offline as a .toaster file.
   
-This repository contains:
+## This repository contains:
 
 - packages/builder: Static web UI
 - packages/worker: Cloudflare Worker
