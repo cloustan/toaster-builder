@@ -2,6 +2,9 @@
 
 <img width="5888" height="2208" alt="breadcube_gradient_banner" src="https://github.com/user-attachments/assets/b2966606-191e-451f-8ff5-268ffaf1f58a" />
 
+## Help contribute to toaster! 
+Create and share courses — Use the live builder → https://builder.toaster.cloustan.org to make example courses (tutorials, lessons, interactive guides, quizzes, etc.). Export them as .toaster files or encrypted strings. Share them with the community, on X/Twitter, Reddit, Discord (if one exists), or wherever Toaster users hang out. This helps demonstrate real-world value and gives feedback on usability.
+
 This repository contains:
 
 - packages/builder: Static web UI
