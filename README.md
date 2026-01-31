@@ -8,6 +8,7 @@ Create and share courses — Use the live builder → https://builder.toaster.cl
 - Create you course using the live builder → https://builder.toaster.cloustan.org (dont worry your, changes are automaticly saved)
 - You can add images and text, as well as well as algorthims, goals and instructions
 - Upload your course or Download it offline as a .toaster file.
+  
 This repository contains:
 
 - packages/builder: Static web UI
