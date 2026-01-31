@@ -16,6 +16,11 @@ Create and share courses — Use the live builder → https://builder.toaster.cl
 
 ## Live URL
 - Builder: https://builder.toaster.cloustan.org
+  
+## Roadmap:
+- **2026 Q1**
+- Upload feature
+- Sign off feature
 
 ## Local Development
 
