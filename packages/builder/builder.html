@@ -9,15 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Tiny5&display=swap" rel="stylesheet">
     <style>
         html, body { min-height: 100vh; }
-        body {
-            color: #1e293b;
-            background:
-              radial-gradient(1100px 700px at 85% 90%, rgba(236, 72, 153, 0.18), rgba(248, 250, 252, 0) 72%),
-              radial-gradient(900px 600px at 15% 8%, rgba(244, 114, 182, 0.14), rgba(248, 250, 252, 0) 62%),
-              #f8fafc;
-            background-repeat: no-repeat;
-            background-attachment: fixed;
-        }
+        body { color: #1e293b; }
         .title-tiny5 { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
         .glass-card {
           background: rgba(255, 255, 255, 0.4);
@@ -52,129 +44,57 @@
         .img-preview { max-height: 150px; width: auto; object-fit: contain; border-radius: 0.5rem; display: none; border: 1px solid #e2e8f0; }
         .kbd-hint { font-size: 0.65rem; padding: 1px 4px; background: #e2e8f0; border-radius: 4px; color: #64748b; margin-left: 4px; }
         #json-output { word-break: break-all; white-space: pre-wrap; }
-        /* Mobile performance: avoid fixed backgrounds and heavy blur */
-        @media (max-width: 768px) {
-          body { background-attachment: scroll; }
-          .glass-card {
-            backdrop-filter: none;
-            -webkit-backdrop-filter: none;
-            background: rgba(255, 255, 255, 0.9);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.5);
-          }
-        }
     </style>
-<!-- Toaster skin overrides: dark glass, cards, titles, mobile tweaks -->
-<style>
-  :root {
-    --app-bg: #0055ff;
-    --text: #e5e7eb;
-    --muted: #9ca3af;
-    /* Card tokens from main app */
-    /* Blue-tinted glass to match app cards */
-    --card-bg: rgba(13, 54, 180, 0.32);
-    --card-border: rgba(255,255,255,0.15);
-    --card-shadow: 0 10px 30px rgba(0,0,0,0.25);
-    /* Back-compat aliases used in this page */
-    --card: var(--card-bg);
-    --border: var(--card-border);
-    --accent-color: #8b5cf6;
-  }
-  .toaster-skin, .toaster-skin * { box-sizing: border-box; }
-  .toaster-skin html, .toaster-skin body { min-height: 100vh; }
-  .toaster-skin { color: var(--text); background: var(--app-bg) !important; background-image:none !important; }
-  .toaster-skin .glass-card { background: var(--card-bg); border:1px solid var(--card-border); border-radius:18px; box-shadow: var(--card-shadow); backdrop-filter: blur(18px) saturate(120%); -webkit-backdrop-filter: blur(18px) saturate(120%); }
-  .toaster-skin .card { background: var(--card-bg); border:1px solid var(--card-border); border-radius:18px; box-shadow: var(--card-shadow); backdrop-filter: blur(18px) saturate(120%); -webkit-backdrop-filter: blur(18px) saturate(120%); }
-  .toaster-skin .step-card { transition: box-shadow .2s ease, border-color .2s ease; }
-  .toaster-skin .step-card:hover { box-shadow: 0 14px 40px rgba(0,0,0,0.35); }
-  .toaster-skin .title-tiny5 { letter-spacing: -0.02em; }
-  /* Text color normalization */
-  .toaster-skin .text-slate-900,
-  .toaster-skin .text-slate-800,
-  .toaster-skin .text-slate-700 { color: var(--text) !important; }
-  .toaster-skin .text-slate-600,
-  .toaster-skin .text-slate-500 { color: var(--muted) !important; }
-  /* Buttons */
-  .toaster-skin .bg-slate-900,
-  .toaster-skin .bg-slate-800 { background: var(--accent-color) !important; color:#0b1020 !important; border-color: transparent !important; }
-  .toaster-skin .bg-slate-600 { background: rgba(255,255,255,0.12) !important; color: var(--text) !important; border:1px solid var(--border) !important; }
-  .toaster-skin .bg-white { background: rgba(255,255,255,0.06) !important; color: var(--text) !important; border:1px solid var(--border) !important; }
-  .toaster-skin .hover\:bg-slate-50:hover { background: rgba(255,255,255,0.1) !important; }
-  /* Top header actions: force white buttons with dark text */
-  .toaster-skin header .flex.gap-2 > * { background:#ffffff !important; color:#0b1020 !important; border:1px solid var(--border) !important; border-radius:18px !important; box-shadow: var(--card-shadow); }
-  .toaster-skin header .flex.gap-2 > *:hover { background:#f5f5f5 !important; }
-  /* Standardize rounded utilities to 18px to match dashboard */
-  .toaster-skin .rounded-lg, .toaster-skin .rounded-xl, .toaster-skin .rounded-full { border-radius: 18px !important; }
-  /* Animated logo */
-  .toaster-skin .logo-wrap { width: clamp(280px, 50vw, 640px); margin: 0 auto 28px; position: relative; }
-  .toaster-skin .logo-spin { animation: spin 8s linear infinite; transform-origin: 50% 50%; }
-  .toaster-skin .logo-pulse { animation: pulse 2.8s ease-in-out infinite; transform-origin: 50% 50%; }
-  .toaster-skin .logo-glow { filter: drop-shadow(0 0 18px rgba(255,255,255,0.35)); }
-  .toaster-skin .logo-video { width: 100%; height: auto; display:block; object-fit: contain; border-radius:18px; }
-  .toaster-skin .logo-img { width: 100%; height: auto; display:block; object-fit: contain; border-radius:18px; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  @keyframes pulse { 0%,100% { transform: scale(1); opacity: .85; } 50% { transform: scale(1.06); opacity: 1; } }
-  /* Shift landing body under logo */
-  #landing .landing-body { margin-top: 12px; }
-  @media (min-width:768px){ #landing .landing-body { margin-top: 18px; } }
-  /* Glass CTA button */
-  .toaster-skin .cta-glass {
-    background: rgba(255,255,255,0.85) !important;
-    color: #0b1020 !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 18px !important;
-    box-shadow: var(--card-shadow);
-    backdrop-filter: blur(10px) saturate(120%);
-    -webkit-backdrop-filter: blur(10px) saturate(120%);
-  }
-  .toaster-skin .cta-glass:hover { background: rgba(255,255,255,0.92) !important; }
-  /* Inputs */
-  .toaster-skin .notched-input,
-  .toaster-skin input[type="text"],
-  .toaster-skin select,
-  .toaster-skin textarea { width:100%; max-width:100%; background: rgba(255,255,255,0.06); border:1px solid var(--border); color: var(--text); border-radius:12px; padding:10px 12px; }
-  .toaster-skin .notched-input:focus, .toaster-skin select:focus, .toaster-skin textarea:focus { outline:none; border-color: rgba(255,255,255,0.35); }
-  .toaster-skin label { color: var(--muted); font-weight: 700; letter-spacing: .04em; }
-  /* Cards, borders */
-  .toaster-skin .border-slate-200 { border-color: var(--card-border) !important; }
-  .toaster-skin .bg-slate-50 { background: rgba(255,255,255,0.06) !important; }
-  .toaster-skin .bg-slate-100 { background: rgba(255,255,255,0.12) !important; color: var(--text) !important; }
-  /* Preview pane */
-  .toaster-skin #json-output { background:#0b0f1a !important; color:#cbd5e1 !important; border-color:#0f172a !important; }
-  /* Headings to match app */
-  .toaster-skin h1 { font-weight: 900; letter-spacing:-0.02em; color: var(--text); }
-  .toaster-skin .subhead { color: var(--muted); font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
-  /* Add Step button */
-  .toaster-skin .add-step { border:1px dashed var(--border) !important; background: rgba(255,255,255,0.06) !important; color: var(--muted) !important; border-radius:18px !important; }
-  /* Mobile tweaks */
-  @media (max-width: 768px) {
-    .toaster-skin .glass-card { backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--card-bg); }
-    .toaster-skin .images-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .toaster-skin .flex, .toaster-skin .grid { min-width: 0; }
-  }
-</style>
+    <!-- Toaster skin overrides: shared tokens and solid background -->
+    <style>
+      :root{
+        --app-bg:#0055ff;
+        --text:#e5e7eb;
+        --muted:#9ca3af;
+        --card-bg: rgba(13, 54, 180, 0.32);
+        --card-border: rgba(255,255,255,0.15);
+        --card-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        --accent-color:#8b5cf6;
+        /* back-compat aliases */
+        --card: var(--card-bg);
+        --border: var(--card-border);
+      }
+      .toaster-skin, .toaster-skin * { box-sizing: border-box; }
+      .toaster-skin { background: var(--app-bg) !important; background-image:none !important; color:var(--text); }
+      .toaster-skin .glass-card { background: var(--card-bg); border:1px solid var(--card-border); border-radius:18px; box-shadow: var(--card-shadow); backdrop-filter: blur(18px) saturate(120%); -webkit-backdrop-filter: blur(18px) saturate(120%); }
+      .toaster-skin .card { background: var(--card-bg); border:1px solid var(--card-border); border-radius:18px; box-shadow: var(--card-shadow); backdrop-filter: blur(18px) saturate(120%); -webkit-backdrop-filter: blur(18px) saturate(120%); }
+      .toaster-skin .border-slate-200 { border-color: var(--card-border) !important; }
+      .toaster-skin .bg-white { background: rgba(255,255,255,0.06) !important; color: var(--text) !important; border:1px solid var(--card-border) !important; }
+      .toaster-skin .bg-slate-50 { background: rgba(255,255,255,0.06) !important; color: var(--text) !important; }
+      .toaster-skin .bg-slate-100 { background: rgba(255,255,255,0.12) !important; color: var(--text) !important; }
+      .toaster-skin .bg-slate-800, .toaster-skin .bg-slate-900 { background: var(--accent-color) !important; color:#0b1020 !important; border-color: transparent !important; }
+      .toaster-skin .text-slate-900, .toaster-skin .text-slate-800, .toaster-skin .text-slate-700 { color: var(--text) !important; }
+      .toaster-skin .text-slate-600, .toaster-skin .text-slate-500, .toaster-skin .text-slate-400 { color: var(--muted) !important; }
+      .toaster-skin .notched-input, .toaster-skin select, .toaster-skin textarea { width:100%; max-width:100%; background: rgba(255,255,255,0.06); border:1px solid var(--card-border); color:var(--text); border-radius:18px; padding:10px 12px; }
+      .toaster-skin .notched-input:focus, .toaster-skin select:focus, .toaster-skin textarea:focus { outline:none; border-color: rgba(255,255,255,0.35); }
+      /* Step number badge: improve contrast */
+      .toaster-skin .step-number { background: rgba(255,255,255,0.85) !important; color:#0b1020 !important; border:1px solid var(--card-border); box-shadow: var(--card-shadow); }
+      /* Top header actions: force white buttons with dark text */
+      .toaster-skin header .flex.gap-2 > * { background:#ffffff !important; color:#0b1020 !important; border:1px solid var(--card-border) !important; border-radius:18px !important; box-shadow: var(--card-shadow); }
+      .toaster-skin header .flex.gap-2 > *:hover { background:#f5f5f5 !important; }
+      /* Standardize rounded utilities to 18px to match dashboard */
+      .toaster-skin .rounded-lg, .toaster-skin .rounded-xl { border-radius: 18px !important; }
+      @media(max-width:768px){ .toaster-skin .glass-card{ backdrop-filter:none; -webkit-backdrop-filter:none; } }
+      /* Subtle entrance animation */
+      @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+      .toaster-skin .glass-card { animation: fadeUp .6s ease both; }
+      @media (prefers-reduced-motion: reduce) { .toaster-skin .glass-card { animation: none; } }
+    </style>
 </head>
 <body class="toaster-skin p-4 md:p-8">
-    <section id="landing" class="min-h-[70vh] flex flex-col items-center justify-center text-center select-none">
-        <div class="logo-wrap" aria-hidden="true">
-          <img class="logo-img logo-glow" src="assets/logo.png" alt="Toaster logo" />
-        </div>
-        <div class="landing-body w-full flex flex-col items-center justify-center">
-          <h1 class="title-tiny5 text-5xl md:text-6xl mb-2">Help contribute to toaster!</h1>
-          <p class="subhead max-w-xl mx-auto">Create and share courses for toaster ! Make courses (tutorials, lessons, interactive guides and quizzes). </p>
-          <button id="enter-btn" class="mt-10 px-8 py-3 rounded-full font-medium shadow-lg transition-all cta-glass
-                  focus:outline-none focus:ring-2 focus:ring-slate-300 active:scale-95">
-              Try Builder 
-          </button>
-        </div>
-    </section>
-    <div id="builder-app" class="max-w-5xl mx-auto hidden">
+    <div class="max-w-5xl mx-auto">
         <!-- Header -->
         <header class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
                 <h1 class="title-tiny5 text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
                     Toaster Course Builder
                 </h1>
-                <p class="text-slate-500">The official bulider for toaster, the world's first interactive cubing platfrom.</p>
+                <p class="text-slate-500">Create and share course files.</p>
             </div>
             <div class="flex gap-2">
                 <label class="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-medium transition-colors border border-slate-200 flex items-center">
@@ -195,7 +115,7 @@
 
         <!-- Metadata -->
         <div class="glass-card p-6 mb-8">
-            <h2 class="text-lg font-semibold mb-4 border-b pb-2 flex justify-between items-center" style="border-color: var(--border);">
+            <h2 class="text-lg font-semibold mb-4 border-b pb-2 flex justify-between items-center">
                 Course Metadata
                 <span id="save-status" class="text-xs font-normal text-slate-400">Autosave: Idle</span>
             </h2>
@@ -203,6 +123,10 @@
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Course Title</label>
                     <input type="text" id="course-title" placeholder="e.g., Beginners Method" class="w-full notched-input py-2" oninput="handleInput()">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Author</label>
+                    <input type="text" id="author" placeholder="e.g., @your-handle" class="w-full notched-input py-2" oninput="handleInput()">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Cube Type</label>
@@ -225,7 +149,7 @@
 
         <div id="steps-container" class="space-y-4 mb-8"></div>
 
-        <button onclick="addStep()" class="add-step w-full py-4 transition-all font-medium flex items-center justify-center gap-2 mb-20">
+        <button onclick="addStep()" class="w-full py-4 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 hover:border-slate-400 hover:text-slate-600 transition-all font-medium flex items-center justify-center gap-2 bg-white mb-20">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
             Add Blank Step <span class="kbd-hint">Ctrl+Enter</span>
         </button>
@@ -289,20 +213,12 @@
     </template>
 
     <script>
-        // Landing button navigates to full builder page
-        (function(){
-          const btn = document.getElementById('enter-btn');
-          if (btn) btn.addEventListener('click', () => {
-            btn.classList.add('scale-95');
-            setTimeout(() => { window.location.href = 'builder.html'; }, 400);
-          });
-        })();
         const WORKER_URL = "https://toaster-bulider-worker.choits824.workers.dev/"; // generic publish endpoint
         
         let stepCount = 0;
         let autoSaveTimer;
 
-        // Plain JSON download (no encryption) saved with .toaster extension
+        // Plain JSON download (no encryption)
         function downloadCourseFile() {
             const data = getCourseData();
             if (!data.format) data.format = 'toaster@1';
@@ -334,31 +250,11 @@
 
             return {
                 title: document.getElementById('course-title').value,
+                author: document.getElementById('author').value,
                 cube_type: document.getElementById('cube-type').value,
                 difficulty: document.getElementById('difficulty').value,
                 last_saved: new Date().toISOString(),
                 steps
-            };
-        }
-
-        // Lightweight snapshot for autosave: omits base64 images to avoid huge writes on mobile
-        function getCourseDataLight() {
-            const full = getCourseData();
-            const lightSteps = full.steps.map(s => ({
-                order: s.order,
-                title: s.title,
-                description: s.description,
-                images: [],
-                videos: [],
-                algorithm: s.algorithm,
-                target_state: s.target_state
-            }));
-            return {
-                title: full.title,
-                cube_type: full.cube_type,
-                difficulty: full.difficulty,
-                last_saved: full.last_saved,
-                steps: lightSteps
             };
         }
 
@@ -372,15 +268,9 @@
 
             clearTimeout(autoSaveTimer);
             autoSaveTimer = setTimeout(() => {
-                const data = getCourseDataLight();
-                const json = JSON.stringify(data);
-                // Skip saving if snapshot is too large (safety guard)
-                if (json.length < 2_000_000) {
-                  localStorage.setItem('toaster_builder_draft', json);
-                  status.innerText = "Draft Saved: " + new Date().toLocaleTimeString();
-                } else {
-                  status.innerText = "Draft too large to autosave";
-                }
+                const data = getCourseData();
+                localStorage.setItem('toaster_builder_draft', JSON.stringify(data));
+                status.innerText = "Draft Saved: " + new Date().toLocaleTimeString();
                 status.classList.remove('text-slate-500');
             }, 800);
         }
@@ -398,6 +288,7 @@
 
         function renderBuilder(data) {
             document.getElementById('course-title').value = data.title || '';
+            document.getElementById('author').value = data.author || '';
             document.getElementById('cube-type').value = data.cube_type || '3x3';
             document.getElementById('difficulty').value = data.difficulty || 'Beginner';
             document.getElementById('steps-container').innerHTML = '';
@@ -497,7 +388,6 @@
             const img = document.createElement('img');
             img.src = src;
             img.className = 'img-preview w-full h-auto';
-            img.loading = 'lazy';
             img.style.display = 'block';
             const btn = document.createElement('button');
             btn.type = 'button';
@@ -555,11 +445,7 @@
             reader.onload = (e) => {
                 const content = e.target.result;
                 const data = JSON.parse(content);
-                if (data) {
-                  renderBuilder(data);
-                  // Defer a lightweight autosave to avoid jank after import
-                  setTimeout(() => { try { handleInput(); } catch(_){} }, 600);
-                }
+                if (data) { renderBuilder(data); handleInput(); }
             };
             reader.readAsText(file);
         }
