@@ -1,10 +1,10 @@
-name: Deploy Worker (backend)
+name: Deploy Builder (frontend)
 
 on:
   push:
-    branches: [ backend ]
+    branches: [ frontend ]
     paths:
-      - 'packages/worker/**'
+      - 'packages/builder/**'
   workflow_dispatch: {}
 
 jobs:
@@ -16,24 +16,38 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '18'
+
+      - name: Show Node/NPM
+        run: |
+          node --version
+          npm --version
+          npx --version
 
       - name: Install dependencies
-        working-directory: packages/worker
         run: npm ci
+        working-directory: packages/builder
 
-      - name: Deploy with Wrangler
-        uses: cloudflare/wrangler-action@v3
+      - name: Build
+        run: npm run build
+        working-directory: packages/builder
+
+      - name: Inspect build output (debug)
+        run: |
+          echo "Listing package dir:"
+          ls -la packages/builder
+          echo "Listing build output:"
+          ls -la packages/builder/dist || true
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
         with:
-          workingDirectory: packages/worker
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy
-        env:
-          # If you wish to inject the secret during CI, consider using
-          # a Cloudflare Secret or wrangler secrets in a prior step.
-          # Generally, keep COURSE_SECRET_KEY managed in Cloudflare, not in CI.
-          NODE_ENV: production
+          projectName: toaster-builder
+          # <- set this to the final output folder from your build
+          directory: packages/builder/dist
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
