@@ -204,7 +204,13 @@
                 <div class="md:col-span-1 space-y-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Algorithm</label>
-                        <input type="text" placeholder="R U R' U'" class="step-algo w-full p-2 bg-slate-50 border border-slate-200 rounded-lg font-mono text-sm uppercase" oninput="handleInput()">
+                        <input type="text" placeholder="R U R' U'" class="step-algo w-full p-2 bg-slate-50 border border-slate-200 rounded-lg font-mono text-sm uppercase" oninput="handleAlgoInput(this)">
+                        <div class="mt-2 flex items-center gap-2">
+                            <input type="text" placeholder="Pattern (optional)" class="step-pattern w-full p-2 border border-slate-200 rounded-lg text-sm bg-white" oninput="handleInput()">
+                            <button type="button" class="detect-pattern px-3 py-2 bg-slate-100 rounded text-sm text-slate-600" onclick="autoDetectPattern(this)">Auto-detect</button>
+                            <button type="button" class="pair-pattern px-3 py-2 bg-white border border-slate-200 rounded text-sm text-slate-600" onclick="pairAlgoToPattern(this)">Pair</button>
+                        </div>
+                        <div class="text-xs text-slate-400 mt-1 pattern-hint"></div>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Goal</label>
@@ -253,6 +259,8 @@
                     images: images.map(src => ({ src, alt: '' })),
                     videos: [],
                     algorithm: card.querySelector('.step-algo').value.toUpperCase().split(' ').filter(m => m.trim()),
+                    pattern: card.querySelector('.step-pattern') ? card.querySelector('.step-pattern').value : null,
+                    paired: card.dataset.paired === 'true',
                     target_state: card.querySelector('.step-goal').value
                 });
             });
@@ -309,6 +317,72 @@
             }
         }
 
+        // --- PATTERN DETECTION / PAIRING ---
+        const PATTERN_MAP = {
+            "Sexy Move": ["R U R' U'"],
+            "Sune": ["R U R' U R U2 R'"],
+            "Antisune": ["R U2 R' U' R U' R'"],
+            "T-Perm": ["R U R' U' R' F R2 U' R' U' R U R' F'"],
+            "U-Perm": ["R U' R U R U R U' R' U' R2"],
+        };
+
+        function normalizeAlgo(text) {
+            return String(text || '').replace(/\s+/g, '').toUpperCase();
+        }
+
+        function detectPatternFromAlgo(algo) {
+            const s = normalizeAlgo(algo);
+            if (!s) return '';
+            for (const [name, arr] of Object.entries(PATTERN_MAP)) {
+                for (const sample of arr) {
+                    if (s.includes(normalizeAlgo(sample))) return name;
+                }
+            }
+            return '';
+        }
+
+        function handleAlgoInput(input) {
+            handleInput();
+            try {
+                const card = input.closest('.step-card');
+                const hint = card.querySelector('.pattern-hint');
+                const detected = detectPatternFromAlgo(input.value);
+                if (detected) {
+                    hint.innerText = 'Detected pattern: ' + detected;
+                } else {
+                    hint.innerText = '';
+                }
+            } catch (e) {}
+        }
+
+        function autoDetectPattern(btn) {
+            const card = btn.closest('.step-card');
+            if (!card) return;
+            const algo = card.querySelector('.step-algo').value;
+            const detected = detectPatternFromAlgo(algo);
+            if (detected) {
+                card.querySelector('.step-pattern').value = detected;
+                card.querySelector('.pattern-hint').innerText = 'Detected pattern: ' + detected;
+                card.dataset.paired = 'false';
+                handleInput();
+            } else {
+                card.querySelector('.pattern-hint').innerText = 'No known pattern detected';
+            }
+        }
+
+        function pairAlgoToPattern(btn) {
+            const card = btn.closest('.step-card');
+            if (!card) return;
+            const pattern = card.querySelector('.step-pattern').value;
+            if (!pattern) {
+                card.querySelector('.pattern-hint').innerText = 'Enter a pattern to pair';
+                return;
+            }
+            card.dataset.paired = 'true';
+            card.querySelector('.pattern-hint').innerText = 'Paired: ' + pattern;
+            handleInput();
+        }
+
         // --- UI HELPERS ---
         function addStep(data = null) {
             stepCount++;
@@ -322,6 +396,8 @@
                 card.querySelector('.step-title').value = data.title || '';
                 card.querySelector('.step-desc').value = data.description || '';
                 card.querySelector('.step-algo').value = (data.algorithm || []).join(' ');
+                if (card.querySelector('.step-pattern')) card.querySelector('.step-pattern').value = data.pattern || '';
+                if (data.paired) card.dataset.paired = 'true';
                 card.querySelector('.step-goal').value = data.target_state || 'scrambled';
                 const imgs = Array.isArray(data.images) ? data.images.map(i => i.src).filter(Boolean) : [];
                 if (imgs.length) {
