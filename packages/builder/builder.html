@@ -206,7 +206,9 @@
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Algorithm</label>
                         <input type="text" placeholder="R U R' U'" class="step-algo w-full p-2 bg-slate-50 border border-slate-200 rounded-lg font-mono text-sm uppercase" oninput="handleAlgoInput(this)">
                         <div class="mt-2 flex items-center gap-2">
-                            <input type="text" placeholder="Pattern (optional)" class="step-pattern w-full p-2 border border-slate-200 rounded-lg text-sm bg-white" oninput="handleInput()">
+                            <input type="file" accept="image/*" class="step-pattern-file hidden" onchange="handlePatternUpload(this)">
+                            <button type="button" onclick="triggerPatternUpload(this)" class="px-3 py-2 bg-slate-100 rounded text-sm text-slate-600">Upload</button>
+                            <img src="" alt="pattern" class="step-pattern-img h-8 w-8 object-cover rounded border border-slate-200" style="display:none">
                             <button type="button" class="detect-pattern px-3 py-2 bg-slate-100 rounded text-sm text-slate-600" onclick="autoDetectPattern(this)">Auto-detect</button>
                             <button type="button" class="pair-pattern px-3 py-2 bg-white border border-slate-200 rounded text-sm text-slate-600" onclick="pairAlgoToPattern(this)">Pair</button>
                         </div>
@@ -259,7 +261,8 @@
                     images: images.map(src => ({ src, alt: '' })),
                     videos: [],
                     algorithm: card.querySelector('.step-algo').value.toUpperCase().split(' ').filter(m => m.trim()),
-                    pattern: card.querySelector('.step-pattern') ? card.querySelector('.step-pattern').value : null,
+                    pattern_image: card.dataset.patternImage || null,
+                    pattern_name: card.dataset.patternName || null,
                     paired: card.dataset.paired === 'true',
                     target_state: card.querySelector('.step-goal').value
                 });
@@ -326,6 +329,14 @@
             "U-Perm": ["R U' R U R U R U' R' U' R2"],
         };
 
+        // Small placeholder SVG thumbnails for known patterns (data URIs)
+        const PATTERN_IMAGE_MAP = Object.fromEntries(Object.keys(PATTERN_MAP).map(name => [name, makeSvgDataUrl(name)]));
+
+        function makeSvgDataUrl(text) {
+            const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='120' height='80'><rect width='100%' height='100%' fill='%23f8fafc'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='12' fill='%230f172a' font-family='Arial,Helvetica,sans-serif'>${text}</text></svg>`;
+            return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+        }
+
         function normalizeAlgo(text) {
             return String(text || '').replace(/\s+/g, '').toUpperCase();
         }
@@ -361,7 +372,11 @@
             const algo = card.querySelector('.step-algo').value;
             const detected = detectPatternFromAlgo(algo);
             if (detected) {
-                card.querySelector('.step-pattern').value = detected;
+                // set detected name and attach a placeholder image
+                card.dataset.patternName = detected;
+                card.dataset.patternImage = PATTERN_IMAGE_MAP[detected] || '';
+                const img = card.querySelector('.step-pattern-img');
+                if (img) { img.src = card.dataset.patternImage; img.style.display = card.dataset.patternImage ? 'block' : 'none'; }
                 card.querySelector('.pattern-hint').innerText = 'Detected pattern: ' + detected;
                 card.dataset.paired = 'false';
                 handleInput();
@@ -373,13 +388,15 @@
         function pairAlgoToPattern(btn) {
             const card = btn.closest('.step-card');
             if (!card) return;
-            const pattern = card.querySelector('.step-pattern').value;
-            if (!pattern) {
-                card.querySelector('.pattern-hint').innerText = 'Enter a pattern to pair';
+            // pairing will attach the current pattern image (uploaded or auto-filled)
+            const imgSrc = card.dataset.patternImage || '';
+            const name = card.dataset.patternName || '';
+            if (!imgSrc) {
+                card.querySelector('.pattern-hint').innerText = 'Upload or detect a pattern image first';
                 return;
             }
             card.dataset.paired = 'true';
-            card.querySelector('.pattern-hint').innerText = 'Paired: ' + pattern;
+            card.querySelector('.pattern-hint').innerText = 'Paired: ' + (name || 'custom');
             handleInput();
         }
 
@@ -396,7 +413,17 @@
                 card.querySelector('.step-title').value = data.title || '';
                 card.querySelector('.step-desc').value = data.description || '';
                 card.querySelector('.step-algo').value = (data.algorithm || []).join(' ');
-                if (card.querySelector('.step-pattern')) card.querySelector('.step-pattern').value = data.pattern || '';
+                if (card.querySelector('.step-pattern-img')) {
+                    if (data.pattern_image) {
+                        card.dataset.patternImage = data.pattern_image;
+                        card.querySelector('.step-pattern-img').src = data.pattern_image;
+                        card.querySelector('.step-pattern-img').style.display = 'block';
+                    }
+                    if (data.pattern_name) {
+                        card.dataset.patternName = data.pattern_name;
+                        card.querySelector('.pattern-hint').innerText = 'Detected pattern: ' + data.pattern_name;
+                    }
+                }
                 if (data.paired) card.dataset.paired = 'true';
                 card.querySelector('.step-goal').value = data.target_state || 'scrambled';
                 const imgs = Array.isArray(data.images) ? data.images.map(i => i.src).filter(Boolean) : [];
@@ -462,6 +489,32 @@
                 };
                 reader.readAsDataURL(file);
             });
+        }
+
+        // --- PATTERN IMAGE HELPERS ---
+        function triggerPatternUpload(btn) {
+            const card = btn.closest('.step-card');
+            if (!card) return;
+            const file = card.querySelector('.step-pattern-file');
+            if (file) file.click();
+        }
+
+        function handlePatternUpload(input) {
+            const card = input.closest('.step-card');
+            if (!card || !input.files || !input.files[0]) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const src = e.target.result;
+                card.dataset.patternImage = src;
+                // clear any auto-detected name when user uploads custom image
+                delete card.dataset.patternName;
+                const img = card.querySelector('.step-pattern-img');
+                if (img) { img.src = src; img.style.display = 'block'; }
+                card.querySelector('.pattern-hint').innerText = 'Custom pattern uploaded';
+                card.dataset.paired = 'false';
+                handleInput();
+            };
+            reader.readAsDataURL(input.files[0]);
         }
 
         // --- IMAGE LIST HELPERS ---
